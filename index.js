@@ -2,8 +2,8 @@ const Realm = require("realm");
 const fs = require("fs");
 
 const appConfig = {
-  id: "testbed-eobcc",
-  timeout: 15000,
+	id: "testbed-eobcc",
+	timeout: 15000,
 };
 const partitionValue = "PUBLIC"
 const app = new Realm.App(appConfig);
@@ -11,15 +11,15 @@ const app = new Realm.App(appConfig);
 let realm;
 
 const TestDataSchema = {
-  name: 'TestData',
-  properties: {
-    _id: 'objectId',
-    _partition: 'string',
-    doubleValue: 'double?',
-    longInt: 'int?',
-    mediumInt: 'int?'
-  },
-  primaryKey: '_id'
+	name: 'TestData',
+	properties: {
+		_id: 'objectId',
+		_partition: 'string',
+		doubleValue: 'double?',
+		longInt: 'int?',
+		mediumInt: 'int?'
+	},
+	primaryKey: '_id'
 };
 
 function fileExistsSync(file) {
@@ -38,13 +38,13 @@ function logWithDate(message) {
 }
 
 function errorSync(session, error) {
-  if ((error.name === 'ClientReset') && (realm != undefined)) {
+	if ((error.name === 'ClientReset') && (realm != undefined)) {
 		const realmPath = realm.path;
-		
+
 		realm.close();
-		
+
 		logWithDate(`Needs to reset ${realmPath}…`);
-    Realm.App.Sync.initiateClientReset(app, realmPath);
+		Realm.App.Sync.initiateClientReset(app, realmPath);
 		logWithDate(`Backup from ${error.config.path}…`);
 
 		// Move backup file to a known location for a restore
@@ -52,7 +52,7 @@ function errorSync(session, error) {
 
 		// Realm isn't valid anymore, notify user to exit
 		realm = null;
-  }
+	}
 }
 
 function transferProgress(transferred, transferables) {
@@ -64,17 +64,17 @@ function transferProgress(transferred, transferables) {
 }
 
 async function openRealm(user) {
-  try {
-    const config = {
-      schema: [TestDataSchema],
-      sync: {
-        user: user,
+	try {
+		const config = {
+			schema: [TestDataSchema],
+			sync: {
+				user: user,
 				partitionValue: partitionValue,
-				newRealmFileBehavior: {type: 'downloadBeforeOpen', timeOutBehavior: 'throwException'},
-				existingRealmFileBehavior: {type: 'openImmediately', timeOutBehavior: 'openLocalRealm'},
+				newRealmFileBehavior: { type: 'downloadBeforeOpen', timeOutBehavior: 'throwException' },
+				existingRealmFileBehavior: { type: 'openImmediately', timeOutBehavior: 'openLocalRealm' },
 				error: errorSync
-      }
-    };
+			}
+		};
 
 		if (process.env.CLEAN_REALM) {
 			Realm.deleteFile(config);
@@ -84,15 +84,15 @@ async function openRealm(user) {
 		realm = await Realm.open(config);
 
 		logWithDate(`Opened realm ${partitionValue}`);
-		
+
 		// Add a progress function
 		realm.syncSession.addProgressNotification('download', 'reportIndefinitely', transferProgress);
 
 		// If a backup file exists, restore to the current realm, and delete file afterwards
-		let backupPath	= realm.path + '~';
+		let backupPath = realm.path + '~';
 
 		if (fileExistsSync(backupPath)) {
-			let backupRealm = await Realm.open({path: backupPath, readOnly: true});
+			let backupRealm = await Realm.open({ path: backupPath, readOnly: true });
 			let backupObjects = backupRealm.objects("TestData");
 
 			logWithDate(`Found ${backupObjects.length} objects in ${backupPath}, proceeding to merge…`);
@@ -106,13 +106,13 @@ async function openRealm(user) {
 			logWithDate(`Merge completed, deleting ${backupPath}…`);
 			fs.unlinkSync(backupPath);
 		}
-  } catch (e) {
-    console.error(e);
-  }
+	} catch (e) {
+		console.error(e);
+	}
 }
 
 async function run() {
-	let user  = app.currentUser;
+	let user = app.currentUser;
 
 	try {
 		if (!user) {
@@ -120,14 +120,14 @@ async function run() {
 		}
 
 		logWithDate(`Logged in with the user: ${user.id}`);
-		
+
 		Realm.App.Sync.setLogLevel(app, "detail");
-		
+
 		await openRealm(user);
-		
+
 		if (realm) {
 			let objects = realm.objects("TestData");
-			
+
 			logWithDate(`Got ${objects.length} objects`)
 
 			function listener(objects, changes) {
