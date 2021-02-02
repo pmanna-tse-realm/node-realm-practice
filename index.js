@@ -10,6 +10,7 @@ const app = new Realm.App(appConfig);
 
 let realm;
 
+// This is just an example of object: gather them from the Data Model tab on the Realm UI Portal
 const TestDataSchema = {
 	name: 'TestData',
 	properties: {
