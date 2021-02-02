@@ -2,10 +2,10 @@ const Realm = require("realm");
 const fs = require("fs");
 
 const appConfig = {
-	id: "testbed-eobcc",
+	id: "<Realm App ID>",
 	timeout: 15000,
 };
-const partitionValue = "PUBLIC"
+const partitionValue = "<Partition Value>"
 const app = new Realm.App(appConfig);
 
 let realm;
@@ -63,6 +63,29 @@ function transferProgress(transferred, transferables) {
 	}
 }
 
+async function restoreRealm() {
+	if (!realm) { return; }
+
+	let backupPath = realm.path + '~';
+
+	if (fileExistsSync(backupPath)) {
+		let backupRealm = await Realm.open({ path: backupPath, readOnly: true });
+		// This is highly dependent on the structure of the data to recover
+		let backupObjects = backupRealm.objects("TestData");
+
+		logWithDate(`Found ${backupObjects.length} objects in ${backupPath}, proceeding to merge…`);
+
+		realm.beginTransaction();
+		backupObjects.forEach(element => {
+			realm.create("TestData", element, 'modified');
+		});
+		realm.commitTransaction();
+
+		logWithDate(`Merge completed, deleting ${backupPath}…`);
+		fs.unlinkSync(backupPath);
+	}
+}
+
 async function openRealm(user) {
 	try {
 		const config = {
@@ -89,23 +112,7 @@ async function openRealm(user) {
 		realm.syncSession.addProgressNotification('download', 'reportIndefinitely', transferProgress);
 
 		// If a backup file exists, restore to the current realm, and delete file afterwards
-		let backupPath = realm.path + '~';
-
-		if (fileExistsSync(backupPath)) {
-			let backupRealm = await Realm.open({ path: backupPath, readOnly: true });
-			let backupObjects = backupRealm.objects("TestData");
-
-			logWithDate(`Found ${backupObjects.length} objects in ${backupPath}, proceeding to merge…`);
-
-			realm.beginTransaction();
-			backupObjects.forEach(element => {
-				realm.create("TestData", element, 'modified');
-			});
-			realm.commitTransaction();
-
-			logWithDate(`Merge completed, deleting ${backupPath}…`);
-			fs.unlinkSync(backupPath);
-		}
+		await restoreRealm();
 	} catch (e) {
 		console.error(e);
 	}
