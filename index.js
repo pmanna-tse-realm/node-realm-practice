@@ -39,20 +39,24 @@ function logWithDate(message) {
 }
 
 function errorSync(session, error) {
-	if ((error.name === 'ClientReset') && (realm != undefined)) {
-		const realmPath = realm.path;
+	if (realm != undefined) {
+		if (error.name === 'ClientReset') {
+			const realmPath = realm.path;
 
-		realm.close();
+			realm.close();
 
-		logWithDate(`Needs to reset ${realmPath}…`);
-		Realm.App.Sync.initiateClientReset(app, realmPath);
-		logWithDate(`Backup from ${error.config.path}…`);
+			logWithDate(`Error ${error.message}, needs to reset ${realmPath}…`);
+			Realm.App.Sync.initiateClientReset(app, realmPath);
+			logWithDate(`Creating backup from ${error.config.path}…`);
 
-		// Move backup file to a known location for a restore
-		fs.renameSync(error.config.path, realmPath + '~');
+			// Move backup file to a known location for a restore
+			fs.renameSync(error.config.path, realmPath + '~');
 
-		// Realm isn't valid anymore, notify user to exit
-		realm = null;
+			// Realm isn't valid anymore, notify user to exit
+			realm = null;
+		} else {
+			logWithDate(`Received error ${error.message}`);
+		}
 	}
 }
 
@@ -123,13 +127,14 @@ async function run() {
 	let user = app.currentUser;
 
 	try {
+		Realm.App.Sync.setLogger(app, (level, message) => logWithDate(`(${level}) ${message}`));
+		Realm.App.Sync.setLogLevel(app, "detail");
+
 		if (!user) {
 			user = await app.logIn(Realm.Credentials.anonymous());
 		}
 
 		logWithDate(`Logged in with the user: ${user.id}`);
-
-		Realm.App.Sync.setLogLevel(app, "detail");
 
 		await openRealm(user);
 
