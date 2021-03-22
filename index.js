@@ -9,6 +9,7 @@ const partitionValue = "<Partition Value>"
 const username = "";
 const password = "";
 const userAPIKey = "";
+const customJWT = "";
 const app = new Realm.App(appConfig);
 
 let realm;
@@ -140,11 +141,13 @@ async function run() {
         credentials = Realm.Credentials.emailPassword(username, password);
       } else if (userAPIKey.length > 0) {
         credentials = Realm.Credentials.userApiKey(userAPIKey);
+      } else if (customJWT.length > 0) {
+        credentials = Realm.Credentials.jwt(customJWT);
       } else {
         credentials = Realm.Credentials.anonymous();
       }
 
-      user = await app.logIn(Realm.Credentials.anonymous());
+      user = await app.logIn(credentials);
     }
 
     logWithDate(`Logged in with the user: ${user.id}`);
